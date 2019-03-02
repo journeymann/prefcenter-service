@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<aspectj>
+ <aspects>
+  <aspect name="com.fd.epcws.performance.aspects.LogMetricsAspect" />
+  
+  <include within="@Loggable *"/>
+  <exclude within="@NoWeave *"/>
+ </aspects>
+   
+ <weaver options="-verbose -debug -showWeaveInfo">
+ 
+  <include within="javax.*"/>
+  <include within="org.aspectj.*"/>
+  <include within="(!@NoWeave foo.*) AND foo.*"/>
+ 
+  <include within="com.fd.epcws.rest.services.*" />
+  <include within="com.fd.epcws.delegates.*" />
+  <include within="com.fd.epcws.db.connection.*" />
+ </weaver>
+ 
+</aspectj>

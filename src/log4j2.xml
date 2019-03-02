@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE xml>
+<Configuration xmlns="http://logging.apache.org/log4j/2.0/config">
+
+	<!-- mail server configuration -->
+	<properties>
+		<property name="recipients">cgordon@1800flowers.com</property>
+		<property name="from">do-not-reply@1800flowers.com</property>
+		<property name="smtpHost">mailerny.1800flowers.int</property>
+		<property name="smtpPort">25</property>
+		<property name="bufferSize">5</property>		
+	</properties>
+	
+	<!-- appenders configuration -->
+    <Appenders>
+    
+    	<!-- console appender pattern definition-->
+        <Console name="consoleAppender" target="SYSTEM_OUT">
+	        <PatternLayout pattern="%d{ABSOLUTE} %level{length=5} [%thread] %logger{1} - %msg%n"/>
+	    </Console>
+	    
+    	<!-- rolling log file appender -->
+        <RollingFile name="File" fileName="/opt/IBM/application/prefcenter/logs/logfile.log" append="true"
+        			filePattern="/opt/IBM/application/prefcenter/logs/$${date:yyyy-MM}/logfile-%d{MM-dd-yyyy}-%i.log.gz">
+            <PatternLayout>
+  				<pattern>%d %p %C{1.} [%t] %m%n</pattern>
+  			</PatternLayout>
+			<Policies>
+				<SizeBasedTriggeringPolicy size="15 MB"/>
+			</Policies>
+			<DefaultRolloverStrategy compressionLevel="8" max="10"/>
+        </RollingFile>
+        
+    	<!-- routing log file appender (allow specify log file name) -->        
+	    <Routing name="RoutingAppender">
+	        <Routes pattern="${ctx:logFileName}">
+	            <Route>
+	                <RollingFile name="Rolling-${ctx:logFileName}"
+	                             fileName="/opt/IBM/application/prefcenter/logs/${ctx:logFileName}"
+	                             append="true"
+	                             filePattern="/opt/IBM/application/prefcenter/logs/$${date:yyyy-MM}/${ctx:logFileName}-%d{MM-dd-yyyy}-%i.log.gz">
+	                    <PatternLayout pattern="%d{ABSOLUTE} %level{length=5} [%thread] %logger{1} - %msg%n"/>
+	                    <SizeBasedTriggeringPolicy size="15 MB" />
+						<DefaultRolloverStrategy compressionLevel="8" max="10"/>
+	                </RollingFile>
+	            </Route>
+	
+	            <!-- By having this set to ${ctx:logFileName} it will match when filename is not set in the context -->
+	            <Route ref="consoleAppender" key="${ctx:logFileName}"/>
+	        </Routes>
+	    </Routing>
+            
+    	<!-- appender for the standard out logging -->        
+        <Console name="StdOut" target="SYSTEM_OUT">
+            <PatternLayout>
+  				<pattern>%d %p %C{1.} [%t] %m%n</pattern>
+  			</PatternLayout>
+        </Console>
+
+        <!-- appender to send mails (default: error and fatal events)-->
+		<SMTP name="Mailer" subject="Web Services Error log" to="${recipients}" from="${from}"
+			  smtpHost="${smtpHost}" smtpPort="${smtpPort}" bufferSize="${bufferSize}">
+		</SMTP>		
+
+        <!-- hybrid custom appender to send mails asynchronously, also log to file -->
+        <Async name="Hybrid" > 
+            <AppenderRef ref="Mailer"/>
+			<AppenderRef ref="File"/>
+        </Async>		
+
+		<!-- Email appender to send mails only asynchronously -->
+        <Async name="Email" > 
+            <AppenderRef ref="Mailer"/>
+        </Async>		
+
+    </Appenders>
+
+    <Loggers>
+
+		<logger level="fatal">
+			<AppenderRef ref="Hybrid"  />
+		</logger>
+
+		<logger name="com.fd.epcws.performance.PerformanceMetrics" level="info" additivity="false">
+	        <AppenderRef ref="RoutingAppender"/>
+		</logger>
+    
+		<Root level="trace" additivity="true">
+			<AppenderRef ref="Hybrid" level="fatal" />
+			<AppenderRef ref="File" level="debug" />
+			<AppenderRef ref="StdOut" level="debug" />
+		</Root>
+		
+    </Loggers>
+
+</Configuration>
